@@ -44,7 +44,7 @@ Problem is:
     3.  one way to solve this problem:
         notice that 0x21DD09EC / 5 = 0x06C5CEC8
         precisely is:
-            0x21DD09EC = 0x06C5CEC8 * 4 + 0x06C5CEC
+            0x21DD09EC = 0x06C5CEC8 * 4 + 0x06C5CECC
         
         then we can create a string:
             '\xc8\xce\xc5\x06' * 4 + '\xcc\xce\xc5\x06'
