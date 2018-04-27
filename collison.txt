@@ -1,0 +1,59 @@
+"""
+Daddy told me about cool MD5 hash collision today.
+I wanna do something like that too!
+
+ssh col@pwnable.kr -p2222 (pw:guest)
+"""
+
+Hint of this question:
+    'MD5 hash collision'
+    # Finally find that it seems nothing to do with MD5 hash collision;
+    # If any interests, check wikipedia:
+        https://en.wikipedia.org/wiki/MD5#Collision_vulnerabilities
+    # or check other web pages;
+
+Problem is:
+    how to generate a 20 bytes string that can be seen equal to 0x21DD09EC
+
+    1.  notice that input 20 bytes string in argv[1] is char[],
+    which is later converted into int[] in function:
+        unsigned long check_password(const char* p);
+
+    usually, when an integer pointer points to a char pointer, the address will change:
+    for example, 
+        char* p:->  0x01    0x12
+                    0x02    0x34
+                    0x03    0x56
+                    0x04    0x78
+    
+    after int* ip = (int*) p:
+                    0x01    0x12
+                    0x02    0x34
+                    0x03    0x56
+        int* ip:->  0x04    0x78
+    
+    if you print the value:
+        *p  =>  0x12
+        *ip =>  0x78563412
+
+    2.  according to above info, the check_password function does thing like that:
+        a.  divide 20 bytes into 5 parts;
+        b.  convert each part into int;
+        c.  add them together;
+
+    3.  one way to solve this problem:
+        notice that 0x21DD09EC / 5 = 0x06C5CEC8
+        precisely is:
+            0x21DD09EC = 0x06C5CEC8 * 4 + 0x06C5CEC
+        
+        then we can create a string:
+            '\xc8\xce\xc5\x06' * 4 + '\xcc\xce\xc5\x06'
+        which is actually 20 bytes
+
+    4.  notice that the way we use to pass hex value as arguments into argv[1] of c program:
+        ./col `python -c "print '\xc8\xce\xc5\x06' * 4 + '\xcc\xce\xc5\x06'"`
+
+        then we get the flag :D
+
+If anything wrong with this idea, or there is any other method, or anything else:
+please contact me: songdy0x0tter@gmail.com
