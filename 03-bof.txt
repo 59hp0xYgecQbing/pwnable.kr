@@ -1,0 +1,83 @@
+"""
+Nana told me that buffer overflow is one of the most common software vulnerability. 
+Is that true?
+
+Download : http://pwnable.kr/bin/bof
+Download : http://pwnable.kr/bin/bof.c
+
+Running at : nc pwnable.kr 9000
+"""
+"""""""""""""""""""""""""""""""""""""
+# bof.c
+"""""""""""""""""""""""""""""""""""""
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+void func(int key){
+	char overflowme[32];
+	printf("overflow me : ");
+	gets(overflowme);	// smash me!
+	if(key == 0xcafebabe){
+		system("/bin/sh");
+	}
+	else{
+		printf("Nah..\n");
+	}
+}
+int main(int argc, char* argv[]){
+	func(0xdeadbeef);
+	return 0;
+}
+"""""""""""""""""""""""""""""""""""""
+
+Hint of the problem is: 
+    buffer overflow
+
+About buffer overflow, check wikipedia:
+    https://en.wikipedia.org/wiki/Buffer_overflow
+also:
+    Call function in buffer overflow:
+        https://stackoverflow.com/questions/30419081/call-function-in-buffer-overflow
+    Smashing the Stack for Fun and Profit by Aleph One (buffer overflow part):
+        http://insecure.org/stf/smashstack.html
+    
+
+Basically, a buffer overflow means:
+    when reading or writing data into a buffer, the program will overrun the buffer's boundary
+    and overwrites adjacent memory locations.(wikipedia)
+also:
+    'A buffer overflow is the result of stuffing more data into a buffer than it can handle.'
+
+Methods:
+	1.	check the bof.c:
+			cat bof.c
+		""""""""""""""""""""""""""""""""""""
+		#include <stdio.h>
+		#include <string.h>
+		#include <stdlib.h>
+		void func(int key){
+			char overflowme[32];
+			printf("overflow me : ");
+			gets(overflowme);	// smash me!
+			if(key == 0xcafebabe){
+				system("/bin/sh");
+			}
+			else{
+				printf("Nah..\n");
+			}
+		}
+		int main(int argc, char* argv[]){
+			func(0xdeadbeef);
+			return 0;
+		}
+		""""""""""""""""""""""""""""""""""""
+
+	2. 	use gdb to locate the buffer:
+			gdb bof
+		
+		when entering gdb mode, we can use 'disas' command to disassamble the file:
+			disas main
+		
+		
+			disas func
+		
