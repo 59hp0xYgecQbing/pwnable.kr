@@ -63,14 +63,38 @@ This is reversing task. all you need is binary
     Luckily enough, the first line seems much like the flag.
     Try it and we've done.
 
+3.  When we use IDA to reverse this flag(after upx -d flag first),
+    in main func, we will see this:
+
+ rodata:0000000000496620 ; Segment type: Pure data
+.rodata:0000000000496620 ; Segment permissions: Read
+.rodata:0000000000496620 ; Segment alignment '32byte' can not be represented in assembly
+.rodata:0000000000496620 _rodata         segment para public 'CONST' use64
+.rodata:0000000000496620                 assume cs:_rodata
+.rodata:0000000000496620                 ;org 496620h
+.rodata:0000000000496620                 public _IO_stdin_used
+.rodata:0000000000496620 _IO_stdin_used  db    1
+.rodata:0000000000496621                 db    0
+.rodata:0000000000496622                 db    2
+.rodata:0000000000496623                 db    0
+.rodata:0000000000496624                 db    0
+.rodata:0000000000496625                 db    0
+.rodata:0000000000496626                 db    0
+.rodata:0000000000496627                 db    0
+.rodata:0000000000496628 aUpxSoundsLikeA db 'UPX...? sounds like a delivery service :)',0
+.rodata:0000000000496628                                         ; DATA XREF: .data:flag↓o
+.rodata:0000000000496652                 align 8
+.rodata:0000000000496658 aIWillMallocAnd db 'I will malloc() and strcpy the flag there. take it.',0
+.rodata:0000000000496658                                         ; DATA XREF: main+8↑o
+
+    Notice the aUpxSoundsLikeA should be the flag.
+    (I'm not quite sure if there will be any sign related to flag in CTF.)
+
 PS:
 1.  When using strings after decompressed flag, if the number of least-bytes is too large,
     the first line shown above will not appear. 
     (I'll check some webpages for any possible reasons or explanations);
-
-2.  I think IDA should be utilized to solve this problem, so I'll try that and add in writeup.
-
-
+    
    
 If anything wrong with this idea, or there is any other method, or anything else(such as my poor english):
 please contact me: songdy0x0tter@gmail.com
