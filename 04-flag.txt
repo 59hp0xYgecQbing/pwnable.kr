@@ -1,0 +1,77 @@
+"""
+Papa brought me a packed present! let's open it.
+
+Download : http://pwnable.kr/bin/flag
+
+This is reversing task. all you need is binary
+"""
+
+# I have to say that I didn't have a lot of experience of bianry or reverse
+# so here is what I have just searched for
+
+1.  Check the format of file:
+        file flag
+    
+    Then we got the basic info about this file:
+        flag: ELF 64-bit LSB executable, x86-64, version 1 (GNU/Linux), statically linked, stripped
+
+2.  Then use strings command:
+        strings flag | less
+    
+    The result shows like this:
+        UPX!
+        @/x8
+        gX lw_
+        H/\_@
+                Kl$
+        H9\$(t
+        []]y
+        ...
+        ...
+        ;dl]tpR
+        c3Rh
+        2B)=    
+        1\a}
+        _M]h
+        Upbrk
+        makBN
+        su`"]R
+        UPX!
+        UPX!
+        (END)
+
+    Notice the token 'UPX!'
+    Basically, UPX shows that this executables is compressed, so now decompress flag:
+        upx -d flag
+
+    Then strings again:
+        strings -20 flag | less
+    (-20: at least 20 Bytes one-line)
+
+    The result shows like this:
+        UPX...? sounds like a delivery service :)
+        I will malloc() and strcpy the flag there. take it.
+        FATAL: kernel too old
+        FATAL: cannot determine kernel version
+        cannot set %fs base address for thread-local storage
+        unexpected reloc type in static binary
+        ======= Backtrace: =========
+        ======= Memory map: ========
+        (p->prev_size == offset)
+        malloc: top chunk is corrupt
+    
+    Luckily enough, the first line seems much like the flag.
+    Try it and we've done.
+
+PS:
+1.  When using strings after decompressed flag, if the number of least-bytes is too large,
+    the first line shown above will not appear. 
+    (I'll check some webpages for any possible reasons or explanations);
+
+2.  I think IDA should be utilized to solve this problem, so I'll try that and add in writeup.
+
+
+   
+If anything wrong with this idea, or there is any other method, or anything else(such as my poor english):
+please contact me: songdy0x0tter@gmail.com
+I'll appreciate it very much if anyone find any fault in these writeup. Thx.
